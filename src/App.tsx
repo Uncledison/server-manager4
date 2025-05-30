@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import serverData from './data/serverData';
@@ -9,35 +8,41 @@ import InfoPanel from './components/InfoPanel';
 import exportToPDF from './components/ExportPDF';
 import './App.css';
 
+type PartType = 'cpu' | 'gpu' | 'memory';
+type TabType = 'server' | PartType;
+
+interface AddedParts {
+  cpu: number;
+  gpu: number;
+  memory: number;
+}
+
 function App() {
-  const [selectedServerId, setSelectedServerId] = useState(null);
-  const [addedParts, setAddedParts] = useState({
+  const [selectedServerId, setSelectedServerId] = useState<number | null>(null);
+  const [addedParts, setAddedParts] = useState<AddedParts>({
     cpu: 0,
     gpu: 0,
     memory: 0
   });
-  const [activeTab, setActiveTab] = useState('server');
+  const [activeTab, setActiveTab] = useState<TabType>('server');
 
-  // 부품 추가 함수
-  const addPart = (type) => {
+  // 부품 추가
+  const addPart = (type: PartType) => {
     if (selectedServerId === null) {
       alert('서버를 먼저 선택해주세요.');
       return;
     }
 
     const server = serverData.server;
-    
-    // 부품 타입별 제한 검사
+
     if (type === 'cpu' && addedParts.cpu >= server.maxCpuSockets) {
       alert(`CPU는 최대 ${server.maxCpuSockets}개까지 추가할 수 있습니다.`);
       return;
     }
-    
     if (type === 'gpu' && addedParts.gpu >= server.maxGpuSlots) {
       alert(`GPU는 최대 ${server.maxGpuSlots}개까지 추가할 수 있습니다.`);
       return;
     }
-    
     if (type === 'memory' && addedParts.memory >= server.maxMemorySlots) {
       alert(`메모리는 최대 ${server.maxMemorySlots}개까지 추가할 수 있습니다.`);
       return;
@@ -49,8 +54,7 @@ function App() {
     }));
   };
 
-  // 부품 제거 함수
-  const removePart = (type) => {
+  const removePart = (type: PartType) => {
     if (addedParts[type] > 0) {
       setAddedParts(prev => ({
         ...prev,
@@ -59,10 +63,8 @@ function App() {
     }
   };
 
-  // 서버 선택 함수
-  const selectServer = (id) => {
+  const selectServer = (id: number) => {
     setSelectedServerId(id);
-    // 서버 변경 시 부품 초기화
     setAddedParts({
       cpu: 0,
       gpu: 0,
@@ -70,16 +72,13 @@ function App() {
     });
   };
 
-  // PDF 내보내기 함수
   const handleExportPDF = async () => {
     try {
-      // 클라이언트 측에서 PDF 생성 (서버 사이드 PDF 생성 API가 없는 경우)
       const result = await exportToPDF({
         selectedServerId,
         addedParts,
         serverData
       });
-      
       if (result) {
         console.log('PDF 내보내기 성공');
       }
@@ -96,68 +95,52 @@ function App() {
           <div className="logo">
             <span className="icon">💻</span> 서버 구성 시스템
           </div>
-          {/* 상단 버튼 삭제 - 사용자 요청에 따라 제거 */}
         </header>
-        
+
         <main className="main-content">
           <h1>서버 구성 시스템</h1>
-          
+
           <div className="action-buttons">
             <button className="action-button" disabled>저장</button>
             <button className="action-button" disabled>불러오기</button>
             <button className="action-button" onClick={handleExportPDF}>내보내기</button>
           </div>
-          
+
           <div className="workspace">
             <div className="left-panel">
               <h2>부품 라이브러리</h2>
               <div className="tabs">
-                <button 
-                  className={`tab ${activeTab === 'server' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('server')}
-                >
-                  서버
-                </button>
-                <button 
-                  className={`tab ${activeTab === 'cpu' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('cpu')}
-                >
-                  CPU
-                </button>
-                <button 
-                  className={`tab ${activeTab === 'gpu' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('gpu')}
-                >
-                  GPU
-                </button>
-                <button 
-                  className={`tab ${activeTab === 'memory' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('memory')}
-                >
-                  메모리
-                </button>
+                {['server', 'cpu', 'gpu', 'memory'].map(tab => (
+                  <button
+                    key={tab}
+                    className={`tab ${activeTab === tab ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab as TabType)}
+                  >
+                    {tab === 'server' ? '서버' : tab.toUpperCase()}
+                  </button>
+                ))}
               </div>
-              
-              <PartLibrary 
-                activeTab={activeTab} 
-                serverData={serverData} 
+
+              <PartLibrary
+                activeTab={activeTab}
+                serverData={serverData}
                 onSelectServer={selectServer}
                 onAddPart={addPart}
                 selectedServerId={selectedServerId}
               />
             </div>
-            
+
             <div className="center-panel">
-              <Canvas 
+              <Canvas
                 selectedServerId={selectedServerId}
                 serverData={serverData}
                 addedParts={addedParts}
                 onRemovePart={removePart}
               />
             </div>
-            
+
             <div className="right-panel">
-              <InfoPanel 
+              <InfoPanel
                 selectedServerId={selectedServerId}
                 serverData={serverData}
                 addedParts={addedParts}
@@ -165,7 +148,7 @@ function App() {
             </div>
           </div>
         </main>
-        
+
         <footer className="footer">
           서버 구성 시스템 데모 - 2025
         </footer>
